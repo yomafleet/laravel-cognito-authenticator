@@ -1,0 +1,19 @@
+{
+    "name": "yomafleet/cognito-authenticator",
+    "description": "Authentication with AWS Cognito for Laravel project",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Yomafleet\\CognitoAuthenticator\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "aungchitmin",
+            "email": "aungchitmin@yomafleet.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
