@@ -1,19 +1,31 @@
 {
-    "name": "yomafleet/cognito-authenticator",
-    "description": "Authentication with AWS Cognito for Laravel project",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "Yomafleet\\CognitoAuthenticator\\": "src/"
-        }
-    },
-    "authors": [
-        {
-            "name": "aungchitmin",
-            "email": "aungchitmin@yomafleet.com"
-        }
-    ],
-    "minimum-stability": "stable",
-    "require": {}
+  "name": "yomafleet/cognito-authenticator",
+  "description": "Authentication with AWS Cognito for Laravel project",
+  "type": "library",
+  "license": "MIT",
+  "minimum-stability": "stable",
+  "authors": [
+    {
+      "name": "aungchitmin",
+      "email": "aungchitmin@yomafleet.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Yomafleet\\CognitoAuthenticator\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "require": {
+    "php": "^7.3|^8.0",
+    "illuminate/support": "^8.0"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^6.0",
+    "phpunit/phpunit": "^9.5"
+  }
 }
