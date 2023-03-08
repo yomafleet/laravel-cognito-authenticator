@@ -30,13 +30,12 @@ class UserPoolFactory implements UserPoolFactoryContract
             return $this->id;
         }
 
-        $this->id = (string) env('AWS_COGNITO_USER_POOL_ID');
+        $this->id = config('cognito.pool_id');
 
         if (! $this->id) {
             throw new EnvironmentalNotSetException(
                 "AWS_COGNITO_USER_POOL_ID not found in environmental variables!"
             );
-            
         }
 
         return $this->id;
@@ -53,7 +52,7 @@ class UserPoolFactory implements UserPoolFactoryContract
             return $this->region;
         }
 
-        $this->region = (string) env('AWS_REGION');
+        $this->region = config('cognito.region');
 
         if (! $this->id) {
             throw new EnvironmentalNotSetException(

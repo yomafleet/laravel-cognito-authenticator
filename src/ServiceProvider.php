@@ -28,6 +28,7 @@ class ServiceProvider extends BaseProvider
     {
         $this->addCognitoGuard();
         $this->loadMigrations();
+        $this->publishConfig();
     }
 
     protected function addCognitoGuard()
@@ -45,5 +46,12 @@ class ServiceProvider extends BaseProvider
         $this->loadMigrationsFrom(
             __DIR__ . '/../database/migrations/'
         );
+    }
+
+    protected function publishConfig()
+    {
+        $this->publishes([
+            __DIR__.'/../config/cognito.php' => config_path('cognito.php'),
+        ]);
     }
 }
