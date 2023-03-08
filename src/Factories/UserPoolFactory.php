@@ -3,6 +3,7 @@
 namespace Yomafleet\CognitoAuthenticator\Factories;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\UnauthorizedException;
 use Yomafleet\CognitoAuthenticator\Models\UserPool;
 use Yomafleet\CognitoAuthenticator\Contracts\UserPoolFactoryContract;
@@ -65,6 +66,22 @@ class UserPoolFactory implements UserPoolFactoryContract
     }
 
     /**
+     * Get JWK from cache or from cognito
+     *
+     * @throws \Illuminate\Validation\UnauthorizedException
+     * @return array
+     */
+    public function getJwk()
+    {
+        return Cache::get($this->getId(), function () {
+            $jwk = $this->fetchJwk();
+            Cache::add($this->getId(), $jwk);
+
+            return $jwk;
+        });
+    }
+
+    /**
      * Fetch JWK from cognito
      *
      * @throws \Illuminate\Validation\UnauthorizedException
@@ -99,7 +116,7 @@ class UserPoolFactory implements UserPoolFactoryContract
             $this->getId(),
             $clientIds,
             $this->getRegion(),
-            $this->fetchJwk(),
+            $this->getJwk(),
         );
     }
 }
