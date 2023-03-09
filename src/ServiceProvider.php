@@ -4,6 +4,7 @@ namespace Yomafleet\CognitoAuthenticator;
 
 use Illuminate\Support\Facades\Auth;
 use Yomafleet\CognitoAuthenticator\CognitoGuard;
+use Yomafleet\CognitoAuthenticator\UserProvider;
 use Illuminate\Support\ServiceProvider as BaseProvider;
 use Yomafleet\CognitoAuthenticator\CognitoSubRetriever;
 
@@ -29,6 +30,7 @@ class ServiceProvider extends BaseProvider
         $this->addCognitoGuard();
         $this->loadMigrations();
         $this->publishConfig();
+        $this->createUserProvider();
     }
 
     protected function addCognitoGuard()
@@ -53,5 +55,15 @@ class ServiceProvider extends BaseProvider
         $this->publishes([
             __DIR__.'/../config/cognito.php' => config_path('cognito.php'),
         ]);
+    }
+
+    protected function createUserProvider()
+    {
+        Auth::provider('cognito', function ($app, array $config) {
+            return new UserProvider(
+                $app['hash'],
+                $config['model']
+            );
+        });
     }
 }
