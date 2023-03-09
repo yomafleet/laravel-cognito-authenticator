@@ -28,7 +28,7 @@ class GetSubAction implements CanGetSubContract
         UserPoolFactoryContract $userPoolFactory = null,
         TokenFactoryContract $tokenFactory = null,
     ) {
-        $this->authToken = $authToken;
+        $this->authToken = $this->parseBearer($authToken);
         $this->userPoolFactory = $userPoolFactory ?: new UserPoolFactory();
         $this->tokenFactory = $tokenFactory ?: new TokenFactory();
     }
@@ -85,5 +85,15 @@ class GetSubAction implements CanGetSubContract
         $verifier = new CognitoClaimVerifier($pool);
 
         return new JwtDecoder($verifier, $this->tokenFactory);
+    }
+
+    /**
+     * Remove 'Bearer ' prefix from bearer token.
+     *
+     * @return string
+     */
+    protected function parseBearer(string $bearer)
+    {
+        return trim(str_ireplace('Bearer ', '', $bearer));
     }
 }

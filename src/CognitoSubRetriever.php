@@ -25,7 +25,7 @@ class CognitoSubRetriever implements CanGetSubContract
      */
     public function getSub()
     {
-        $getSub = new GetSubAction($this->getBearer());
+        $getSub = new GetSubAction($this->getAuthHeader());
 
         return $getSub();
     }
@@ -36,7 +36,7 @@ class CognitoSubRetriever implements CanGetSubContract
      * @return string
      * @throws \Yomafleet\CognitoAuthenticator\Exceptions\AuthorizationHeaderNotFoudException
      */
-    public function retrieveAuthHeader()
+    public function getAuthHeader()
     {
         $authorization = $this->request->header('authorization');
 
@@ -45,18 +45,5 @@ class CognitoSubRetriever implements CanGetSubContract
         }
 
         return $authorization;
-    }
-
-    /**
-     * Get Bearer token for authroization header
-     *
-     * @throws \Yomafleet\CognitoAuthenticator\Exceptions\AuthorizationHeaderNotFoudException
-     * @return string
-     */
-    protected function getBearer(): string
-    {
-        $authorization = $this->retrieveAuthHeader();
-
-        return trim(str_ireplace('Bearer ', '', $authorization));
     }
 }
