@@ -7,7 +7,9 @@ use Yomafleet\CognitoAuthenticator\Models\CognitoUser;
 trait HasCognitoSub
 {
     /**
-     * Get the user's image.
+     * Get the cognito related as relationship.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\MorphOne
      */
     public function cognito()
     {
