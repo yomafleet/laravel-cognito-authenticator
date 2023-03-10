@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddSsoColumnsToUsersTable extends Migration
+class CreateCognitoUsersTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,9 +13,13 @@ class AddSsoColumnsToUsersTable extends Migration
      */
     public function up()
     {
-        Schema::table('users', function (Blueprint $table) {
+        Schema::create('cognito_users', function (Blueprint $table) {
+            $table->id();
+            $table->morphs('subable');
             $table->string('sub')->unique()->nullable();
             $table->json('identities')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
         });
     }
 
@@ -26,9 +30,6 @@ class AddSsoColumnsToUsersTable extends Migration
      */
     public function down()
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('sub')->unique()->nullable();
-            $table->json('identities')->nullable();
-        });
+        Schema::dropIfExists('cognito_users');
     }
 }
