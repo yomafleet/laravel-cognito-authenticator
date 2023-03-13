@@ -36,7 +36,7 @@ class ServiceProvider extends BaseProvider
     protected function registerManager()
     {
         $this->app->bind('cognito-authenticator', function () {
-            $this->createManager();
+            return $this->createManager();
         });
     }
 
