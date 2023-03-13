@@ -7,7 +7,7 @@ use RuntimeException;
 
 class AuthorizationHeaderNotFoudException extends RuntimeException
 {
-    protected string $message = 'Authorization header not found.';
+    protected $message = 'Authorization header not found.';
 
     public function __construct($message = '', int $code = 0, Throwable $previous = null)
     {
