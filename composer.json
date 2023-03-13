@@ -35,7 +35,10 @@
     "laravel": {
       "providers": [
         "Yomafleet\\CognitoAuthenticator\\ServiceProvider"
-      ]
+      ],
+      "aliases": {
+        "Cognito": "Yomafleet\\CognitoAuthenticator\\Facades\\Cognito"
+      }
     }
   }
 }
