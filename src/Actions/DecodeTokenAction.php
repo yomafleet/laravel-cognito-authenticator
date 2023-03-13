@@ -3,10 +3,11 @@
 namespace Yomafleet\CognitoAuthenticator\Actions;
 
 use Illuminate\Validation\UnauthorizedException;
+use Yomafleet\CognitoAuthenticator\Contracts\TokenContract;
 use Yomafleet\CognitoAuthenticator\Contracts\DecoderContract;
-use Yomafleet\CognitoAuthenticator\Contracts\CanGetSubContract;
+use Yomafleet\CognitoAuthenticator\Contracts\DecodeTokenContract;
 
-class GetSubAction implements CanGetSubContract
+class DecodeTokenAction implements DecodeTokenContract
 {
     /** @var string */
     protected $token;
@@ -23,23 +24,23 @@ class GetSubAction implements CanGetSubContract
     }
 
     /**
-     * Get "sub" from the token.
+     * Get the decoded token.
      *
      * @throws \Yomafleet\CognitoAuthenticator\Exceptions\UnauthorizedException
-     * @return string
+     * @return \Yomafleet\CognitoAuthenticator\Contracts\TokenContract
      */
-    public function __invoke(): string
+    public function __invoke(): TokenContract
     {
-        return $this->getSub();
+        return $this->decode();
     }
 
     /**
-     * Get "sub" from the token.
+     * Decode the given token.
      *
      * @throws \Yomafleet\CognitoAuthenticator\Exceptions\UnauthorizedException
-     * @return string
+     * @return \Yomafleet\CognitoAuthenticator\Contracts\TokenContract
      */
-    public function getSub(): string
+    public function decode(): TokenContract
     {
         $token = $this->decoder->decode($this->token);
 
@@ -47,7 +48,7 @@ class GetSubAction implements CanGetSubContract
             throw new UnauthorizedException();
         }
 
-        return $token->getSub();
+        return $token;
     }
 
     /**

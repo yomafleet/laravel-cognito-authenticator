@@ -5,7 +5,7 @@ namespace Yomafleet\CognitoAuthenticator\Contracts;
 interface CanGetSubContract
 {
     /**
-     * get "sub" from request header.
+     * Get "sub" from the token.
      *
      * @throws \Yomafleet\CognitoAuthenticator\Exceptions\UnauthorizedException
      * @return string
