@@ -98,7 +98,7 @@ class CognitoManager
      *
      * @param string $identifier
      * @param string $password
-     * @return mixed
+     * @return array
      */
     public function authenticate($identifier, $password)
     {
