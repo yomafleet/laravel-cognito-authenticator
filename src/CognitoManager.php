@@ -106,7 +106,10 @@ class CognitoManager
         $clientId = config('cognito.id');
         $clientSecret = config('cognito.secret');
         $credentials = config('cognito.credentials');
-        $client = new CognitoIdentityProviderClient($credentials);
+        $client = new CognitoIdentityProviderClient($credentials + [
+            'region' => config('cognito.region'),
+            'version' => config('cognito.version')
+        ]);
         $authenticateAction = new AuthenticateAction(
             new CognitoAuthenticator($client, $poolId, $clientId, $clientSecret)
         );
