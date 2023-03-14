@@ -7,9 +7,12 @@ use Yomafleet\CognitoAuthenticator\CognitoSubRetriever;
 use Yomafleet\CognitoAuthenticator\Factories\TokenFactory;
 use Yomafleet\CognitoAuthenticator\Contracts\DecoderContract;
 use Yomafleet\CognitoAuthenticator\Factories\UserPoolFactory;
+use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
+use Yomafleet\CognitoAuthenticator\Actions\AuthenticateAction;
 use Yomafleet\CognitoAuthenticator\Contracts\TokenFactoryContract;
 use Yomafleet\CognitoAuthenticator\Contracts\ClaimVerifierContract;
 use Yomafleet\CognitoAuthenticator\Contracts\UserPoolFactoryContract;
+use Yomafleet\CognitoAuthenticator\Exceptions\UnauthorizedException;
 
 class CognitoManager
 {
@@ -88,5 +91,45 @@ class CognitoManager
         }
 
         return new CognitoSubRetriever($request, $decoder);
+    }
+
+    /**
+     * Authenticate via cognito
+     *
+     * @param string $identifier
+     * @param string $password
+     * @return mixed
+     */
+    public function authenticate($identifier, $password)
+    {
+        $poolId = config('cognito.pool_id');
+        $clientId = config('cognito.id');
+        $clientSecret = config('cognito.secret');
+        $credentials = config('cognito.credentials');
+        $client = new CognitoIdentityProviderClient($credentials);
+        $authenticateAction = new AuthenticateAction(
+            new CognitoAuthenticator($client, $poolId, $clientId, $clientSecret)
+        );
+
+        $response = $authenticateAction($identifier, $password);
+
+        if (! $response || ! method_exists($response, 'toArray')) {
+            throw new UnauthorizedException("Unauthorized!");
+        }
+
+        $result = $response->toArray();
+
+        if (! array_key_exists('AuthenticationResult', $result)) {
+            throw new UnauthorizedException("Unauthorized!");
+        }
+
+        $result = $result['AuthenticationResult'];
+
+        return [
+            'access_token' => $result['AccessToken'],
+            'expires_in' => $result['ExpiresIn'],
+            'refresh_token' => $result['RefreshToken'],
+            'id_token' => $result['IdToken'],
+        ];
     }
 }
