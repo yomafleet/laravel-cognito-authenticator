@@ -31,7 +31,11 @@ class CognitoGuard implements Guard
             return $this->sub;
         }
 
-        $this->sub = $this->subRetriever->getSub();
+        try {
+            $this->sub = $this->subRetriever->getSub();
+        } catch (\Throwable $th) {
+            return null;
+        }
 
         return $this->sub;
     }
