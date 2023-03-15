@@ -5,14 +5,15 @@ namespace Yomafleet\CognitoAuthenticator;
 use Illuminate\Http\Request;
 use Yomafleet\CognitoAuthenticator\CognitoSubRetriever;
 use Yomafleet\CognitoAuthenticator\Factories\TokenFactory;
+use Yomafleet\CognitoAuthenticator\Actions\DecodeTokenAction;
 use Yomafleet\CognitoAuthenticator\Contracts\DecoderContract;
 use Yomafleet\CognitoAuthenticator\Factories\UserPoolFactory;
 use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 use Yomafleet\CognitoAuthenticator\Actions\AuthenticateAction;
 use Yomafleet\CognitoAuthenticator\Contracts\TokenFactoryContract;
 use Yomafleet\CognitoAuthenticator\Contracts\ClaimVerifierContract;
-use Yomafleet\CognitoAuthenticator\Contracts\UserPoolFactoryContract;
 use Yomafleet\CognitoAuthenticator\Exceptions\UnauthorizedException;
+use Yomafleet\CognitoAuthenticator\Contracts\UserPoolFactoryContract;
 
 class CognitoManager
 {
@@ -73,6 +74,19 @@ class CognitoManager
     public function getDecoder(): DecoderContract
     {
         return $this->decoder;
+    }
+
+    /**
+     * Decode a given Bearer token
+     *
+     * @param string $token
+     * @return \Yomafleet\CognitoAuthenticator\Contracts\TokenContract
+     */
+    public function decode($token)
+    {
+        $decode = new DecodeTokenAction($token, $this->getDecoder());
+
+        return $decode();
     }
 
     /**
