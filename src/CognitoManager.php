@@ -5,14 +5,15 @@ namespace Yomafleet\CognitoAuthenticator;
 use Illuminate\Http\Request;
 use Yomafleet\CognitoAuthenticator\CognitoSubRetriever;
 use Yomafleet\CognitoAuthenticator\Factories\TokenFactory;
+use Yomafleet\CognitoAuthenticator\Actions\DecodeTokenAction;
 use Yomafleet\CognitoAuthenticator\Contracts\DecoderContract;
 use Yomafleet\CognitoAuthenticator\Factories\UserPoolFactory;
 use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 use Yomafleet\CognitoAuthenticator\Actions\AuthenticateAction;
 use Yomafleet\CognitoAuthenticator\Contracts\TokenFactoryContract;
 use Yomafleet\CognitoAuthenticator\Contracts\ClaimVerifierContract;
-use Yomafleet\CognitoAuthenticator\Contracts\UserPoolFactoryContract;
 use Yomafleet\CognitoAuthenticator\Exceptions\UnauthorizedException;
+use Yomafleet\CognitoAuthenticator\Contracts\UserPoolFactoryContract;
 
 class CognitoManager
 {
@@ -76,6 +77,19 @@ class CognitoManager
     }
 
     /**
+     * Decode a given Bearer token
+     *
+     * @param string $token
+     * @return \Yomafleet\CognitoAuthenticator\Contracts\TokenContract
+     */
+    public function decode($token)
+    {
+        $decode = new DecodeTokenAction($token, $this->getDecoder());
+
+        return $decode();
+    }
+
+    /**
      * Get cognito 'sub' retriever
      *
      * @param \Illuminate\Http\Request $request
@@ -106,7 +120,10 @@ class CognitoManager
         $clientId = config('cognito.id');
         $clientSecret = config('cognito.secret');
         $credentials = config('cognito.credentials');
-        $client = new CognitoIdentityProviderClient($credentials);
+        $client = new CognitoIdentityProviderClient($credentials + [
+            'region' => config('cognito.region'),
+            'version' => config('cognito.version')
+        ]);
         $authenticateAction = new AuthenticateAction(
             new CognitoAuthenticator($client, $poolId, $clientId, $clientSecret)
         );
