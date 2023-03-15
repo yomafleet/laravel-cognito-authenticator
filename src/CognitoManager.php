@@ -48,7 +48,7 @@ class CognitoManager
      * Create new verifier by given client-ids
      *
      * @param array $clientIds
-     * @return ClaimVerifierContract
+     * @return \Yomafleet\CognitoAuthenticator\Contracts\ClaimVerifierContract
      */
     protected function createVerifier(array $clientIds): ClaimVerifierContract
     {
