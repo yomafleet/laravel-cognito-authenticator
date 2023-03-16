@@ -76,7 +76,7 @@ class CognitoGuard implements Guard
 
         $credentials = [self::IDENTIFIER_NAME => $credentials[self::IDENTIFIER_NAME]];
 
-        if ($this->provider->retrieveByCredentials($credentials)) {
+        if ($this->user = $this->provider->retrieveByCredentials($credentials)) {
             return true;
         }
 
