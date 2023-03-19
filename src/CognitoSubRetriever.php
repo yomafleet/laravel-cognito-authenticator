@@ -3,10 +3,12 @@
 namespace Yomafleet\CognitoAuthenticator;
 
 use Illuminate\Http\Request;
+use Yomafleet\CognitoAuthenticator\Contracts\TokenContract;
 use Yomafleet\CognitoAuthenticator\Actions\DecodeTokenAction;
 use Yomafleet\CognitoAuthenticator\Contracts\DecoderContract;
 use Yomafleet\CognitoAuthenticator\Exceptions\TokenException;
 use Yomafleet\CognitoAuthenticator\Contracts\CanGetSubContract;
+use Yomafleet\CognitoAuthenticator\Contracts\DecoderFactoryContract;
 use Yomafleet\CognitoAuthenticator\Exceptions\IdTokenHeaderNotFoundException;
 use Yomafleet\CognitoAuthenticator\Exceptions\AuthorizationHeaderNotFoudException;
 
@@ -15,13 +17,32 @@ class CognitoSubRetriever implements CanGetSubContract
     /** @var \Illuminate\Http\Request */
     protected $request;
 
-    /** @var \Yomafleet\CognitoAuthenticator\Contracts\DecoderContract $decoder */
+    /** @var \Yomafleet\CognitoAuthenticator\Contracts\DecoderFactoryContract */
+    protected $decoderFactory;
+
+    /** @var \Yomafleet\CognitoAuthenticator\Contracts\DecoderContract */
     protected $decoder;
 
-    public function __construct(Request $request, DecoderContract $decoder)
+    public function __construct(Request $request, DecoderFactoryContract $decoderFactory)
     {
         $this->request = $request;
-        $this->decoder = $decoder;
+        $this->decoderFactory = $decoderFactory;
+    }
+
+    /**
+     * Get JWT decoder.
+     *
+     * @return \Yomafleet\CognitoAuthenticator\Contracts\DecoderContract
+     */
+    public function getDecoder(): DecoderContract
+    {
+        if ($this->decoder) {
+            return $this->decoder;
+        }
+
+        $this->decoder = $this->decoderFactory->create();
+
+        return $this->decoder;
     }
 
     /**
@@ -45,7 +66,7 @@ class CognitoSubRetriever implements CanGetSubContract
      * @throws \Yomafleet\CognitoAuthenticator\Exceptions\UnauthorizedException
      * @return \Yomafleet\CognitoAuthenticator\Contracts\TokenContract
      */
-    public function getDecoded($tokenType = 'access')
+    public function getDecoded($tokenType = 'access'): TokenContract
     {
         if (! in_array($tokenType, ['access', 'id'])) {
             throw new TokenException(
@@ -54,7 +75,7 @@ class CognitoSubRetriever implements CanGetSubContract
         }
 
         $name = 'get'.ucfirst($tokenType).'TokenHeader';
-        $decodeToken = new DecodeTokenAction($this->$name(), $this->decoder);
+        $decodeToken = new DecodeTokenAction($this->$name(), $this->getDecoder());
         return $decodeToken();
     }
 
