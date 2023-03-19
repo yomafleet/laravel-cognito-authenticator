@@ -4,11 +4,15 @@ namespace Yomafleet\CognitoAuthenticator\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Yomafleet\CognitoAuthenticator\Factories\CognitoUserFactory;
 
 class CognitoUser extends Model
 {
     use SoftDeletes;
+    use HasFactory;
 
     /**
      * The attributes that are mass assignable.
@@ -16,7 +20,8 @@ class CognitoUser extends Model
      * @var array
      */
     protected $fillable = [
-        'user_id',
+        'subable_type',
+        'subable_id',
         'sub',
         'identities',
     ];
@@ -38,5 +43,13 @@ class CognitoUser extends Model
     public function subable()
     {
         return $this->morphTo();
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory(): Factory
+    {
+        return CognitoUserFactory::new();
     }
 }
