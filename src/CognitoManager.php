@@ -182,7 +182,7 @@ class CognitoManager
      */
     public function actingAs($user, $jwk, $guard = 'api')
     {
-        $subRetriever = new class extends CognitoSubRetriever
+        $subRetriever = new class (app('request'), $this->getDecoderFactory()) extends CognitoSubRetriever
         {
             public function getDecoded($tokenType = 'access'): TokenContract
             {

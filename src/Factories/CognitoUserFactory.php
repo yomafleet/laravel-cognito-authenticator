@@ -29,7 +29,7 @@ class CognitoUserFactory extends Factory
                 'provider' => 'Cognito',
                 'user_id' => $sub,
                 'status' => 'EXTERNAL_PROVIDER',
-            ],,
+            ],
         ];
     }
 }
