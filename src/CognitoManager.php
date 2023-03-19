@@ -199,7 +199,8 @@ class CognitoManager
                     "exp" => time() + 86400,
                     "iat" => time(),
                     "jti" => "f9be0f56-ed46-4dff-8966-513a10ce1d08",
-                    "username" => "6a41dddc-feb1-447a-907a-a47c7e6a872b",
+                    "name" => "6a41dddc-feb1-447a-907a-a47c7e6a872b",
+                    "email" => "user@example.com",
                 ]);
             }
         };
