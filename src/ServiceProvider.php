@@ -35,7 +35,7 @@ class ServiceProvider extends BaseProvider
 
     protected function registerManager()
     {
-        $this->app->bind('cognito-authenticator', function () {
+        $this->app->singleton('cognito-authenticator', function () {
             return $this->createManager();
         });
     }
@@ -43,7 +43,7 @@ class ServiceProvider extends BaseProvider
     protected function addCognitoGuard()
     {
         Auth::extend('cognito', function ($app, $name, array $config) {
-            $manager = $this->createManager();
+            $manager = $app['cognito-authenticator'];
 
             return new CognitoGuard(
                 Auth::createUserProvider($config['provider']),
@@ -81,5 +81,12 @@ class ServiceProvider extends BaseProvider
         $clientIds = config('cognito.client_ids', '');
         $clientIds = explode(',', $clientIds);
         return new CognitoManager($clientIds);
+    }
+
+    protected function publishFactory()
+    {
+        $this->publishes([
+            __DIR__.'/../database/migrations/' => database_path('migrations')
+        ], 'courier-migrations');
     }
 }

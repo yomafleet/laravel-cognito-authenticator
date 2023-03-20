@@ -20,6 +20,14 @@ class UserPoolFactory implements UserPoolFactoryContract
     /** @var array */
     protected $clientIds = [''];
 
+    /** @var array */
+    protected $jwk = [];
+
+    public function __construct(array $jwk = [])
+    {
+        $this->jwk = $jwk;
+    }
+
     /**
      * Get user pool ID
      *
@@ -73,12 +81,18 @@ class UserPoolFactory implements UserPoolFactoryContract
      */
     public function getJwk()
     {
-        return Cache::get($this->getId(), function () {
+        if ($this->jwk) {
+            return $this->jwk;
+        }
+
+        $this->jwk = Cache::get($this->getId(), function () {
             $jwk = $this->fetchJwk();
             Cache::add($this->getId(), $jwk);
 
             return $jwk;
         });
+
+        return $this->jwk;
     }
 
     /**

@@ -2,22 +2,26 @@
 
 namespace Yomafleet\CognitoAuthenticator;
 
+use Mockery;
 use Illuminate\Http\Request;
 use Yomafleet\CognitoAuthenticator\CognitoSubRetriever;
+use Yomafleet\CognitoAuthenticator\CognitoAuthenticator;
 use Yomafleet\CognitoAuthenticator\Factories\TokenFactory;
+use Yomafleet\CognitoAuthenticator\Contracts\TokenContract;
+use Yomafleet\CognitoAuthenticator\Factories\DecoderFactory;
 use Yomafleet\CognitoAuthenticator\Actions\DecodeTokenAction;
-use Yomafleet\CognitoAuthenticator\Contracts\DecoderContract;
 use Yomafleet\CognitoAuthenticator\Factories\UserPoolFactory;
 use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 use Yomafleet\CognitoAuthenticator\Actions\AuthenticateAction;
 use Yomafleet\CognitoAuthenticator\Contracts\TokenFactoryContract;
-use Yomafleet\CognitoAuthenticator\Contracts\ClaimVerifierContract;
+use Yomafleet\CognitoAuthenticator\Contracts\DecoderFactoryContract;
 use Yomafleet\CognitoAuthenticator\Exceptions\UnauthorizedException;
 use Yomafleet\CognitoAuthenticator\Contracts\UserPoolFactoryContract;
 
 class CognitoManager
 {
 
+    /** @var array */
     protected array $clientIds;
 
     /** @var \Yomafleet\CognitoAuthenticator\Contracts\UserPoolFactoryContract */
@@ -26,54 +30,54 @@ class CognitoManager
     /** @var \Yomafleet\CognitoAuthenticator\Contracts\TokenFactoryContract */
     protected $tokenFactory;
 
-    /** @var \Yomafleet\CognitoAuthenticator\Contracts\ClaimVerifierContract */
-    protected $verifier;
-
-    /** @var \Yomafleet\CognitoAuthenticator\Contracts\DecoderContract */
-    protected $decoder;
+    /** @var \Yomafleet\CognitoAuthenticator\CognitoSubRetriever */
+    public $subRetriever;
 
     public function __construct(
         array $clientIds = [''],
         UserPoolFactoryContract $userPoolFactory = null,
-        TokenFactoryContract $tokenFactory = null
+        TokenFactoryContract $tokenFactory = null,
+        CognitoSubRetriever $subRetriever = null,
     ) {
         $this->clientIds = $clientIds;
         $this->userPoolFactory = $userPoolFactory ?: new UserPoolFactory();
         $this->tokenFactory = $tokenFactory ?: new TokenFactory();
-        $this->verifier = $this->createVerifier($clientIds);
-        $this->decoder = $this->createJwtDecoder();
+
+        if ($subRetriever) {
+            $this->subRetriever = $subRetriever;
+        }
+    }
+    
+    /**
+     * Set the userpool factory
+     *
+     * @param UserPoolFactoryContract $userPoolFactory
+     * @return void
+     */
+    public function setUserPoolFactory(UserPoolFactoryContract $userPoolFactory)
+    {
+        $this->userPoolFactory = $userPoolFactory;
     }
 
     /**
-     * Create new verifier by given client-ids
+     * Set cognito "sub" retriever
      *
-     * @param array $clientIds
-     * @return \Yomafleet\CognitoAuthenticator\Contracts\ClaimVerifierContract
+     * @param CognitoSubRetriever $subRetriever
+     * @return void
      */
-    protected function createVerifier(array $clientIds): ClaimVerifierContract
+    public function setCognitoSubRetriever(CognitoSubRetriever $subRetriever)
     {
-        $pool = $this->userPoolFactory->create($clientIds);
-        return new CognitoClaimVerifier($pool);
+        $this->subRetriever = $subRetriever;
     }
 
     /**
-     * Create new JWT decoder by given clent-ids
+     * Get decoder factory
      *
-     * @return \Yomafleet\CognitoAuthenticator\JwtDecoder
+     * @return \Yomafleet\CognitoAuthenticator\Contracts\DecoderFactoryContract
      */
-    protected function createJwtDecoder(): JwtDecoder
+    public function getDecoderFactory(): DecoderFactoryContract
     {
-        return new JwtDecoder($this->verifier, $this->tokenFactory);
-    }
-
-    /**
-     * Get decoder
-     *
-     * @return \Yomafleet\CognitoAuthenticator\Contracts\DecoderContract
-     */
-    public function getDecoder(): DecoderContract
-    {
-        return $this->decoder;
+        return new DecoderFactory($this->clientIds, $this->userPoolFactory, $this->tokenFactory);
     }
 
     /**
@@ -84,7 +88,8 @@ class CognitoManager
      */
     public function decode($token)
     {
-        $decode = new DecodeTokenAction($token, $this->getDecoder());
+        $decoderFactory = $this->getDecoderFactory();
+        $decode = new DecodeTokenAction($token, $decoderFactory->create());
 
         return $decode();
     }
@@ -93,18 +98,35 @@ class CognitoManager
      * Get cognito 'sub' retriever
      *
      * @param \Illuminate\Http\Request $request
+     * @return \Yomafleet\CognitoAuthenticator\CognitoSubRetriever
+     */
+    public function getSubRetriever(Request $request)
+    {
+        if ($this->subRetriever) {
+            return $this->subRetriever;
+        }
+
+        $this->subRetriever = $this->createSubRetriever($request);
+
+        return $this->subRetriever;
+    }
+
+    /**
+     * Create cognito 'sub' retriever
+     *
+     * @param \Illuminate\Http\Request $request
      * @param \Yomafleet\CognitoAuthenticator\Contracts\DecoderContract|null $decoder
      * @return \Yomafleet\CognitoAuthenticator\CognitoSubRetriever
      */
-    public function getSubRetriever(
+    public function createSubRetriever(
         Request $request,
-        DecoderContract $decoder = null
+        DecoderFactoryContract $decoderFactory = null
     ): CognitoSubRetriever {
-        if (! is_a($decoder, DecoderContract::class)) {
-            $decoder = $this->decoder;
+        if (! is_a($decoderFactory, DecoderFactoryContract::class)) {
+            $decoderFactory = $this->getDecoderFactory();
         }
 
-        return new CognitoSubRetriever($request, $decoder);
+        return new CognitoSubRetriever($request, $decoderFactory);
     }
 
     /**
@@ -148,5 +170,49 @@ class CognitoManager
             'refresh_token' => $result['RefreshToken'],
             'id_token' => $result['IdToken'],
         ];
+    }
+
+    /**
+     * Set the current user for the application.
+     *
+     * @param \Illuminate\Contracts\Auth\Authenticatable|\Yomafleet\CognitoAuthenticator\Traits\HasCognitoSub $user
+     * @param array $jwk
+     * @param string $guard
+     * @return \Illuminate\Contracts\Auth\Authenticatable
+     */
+    public function actingAs($user, $jwk, $guard = 'api')
+    {
+        $subRetriever = new class (app('request'), $this->getDecoderFactory()) extends CognitoSubRetriever
+        {
+            public function getDecoded($tokenType = 'access'): TokenContract
+            {
+                return (new TokenFactory())->create([
+                    "sub" => "6a41dddc-feb1-447a-907a-a47c7e6a872b",
+                    "iss" => "https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_7g0492XkI",
+                    "version" => 2,
+                    "client_id" => "57fvb75dd1p93ri66fut2obff4",
+                    "origin_jti" => "aa2db77e-d7a6-4720-85a3-736f3bf6287a",
+                    "event_id" => "56193124-b5d0-4f92-ab12-cefdf5a34656",
+                    "token_use" => $tokenType,
+                    "scope" => "openid profile email",
+                    "auth_time" => time(),
+                    "exp" => time() + 86400,
+                    "iat" => time(),
+                    "jti" => "f9be0f56-ed46-4dff-8966-513a10ce1d08",
+                    "name" => "6a41dddc-feb1-447a-907a-a47c7e6a872b",
+                    "email" => "user@example.com",
+                ]);
+            }
+        };
+
+        $manager = app('cognito-authenticator');
+        $manager->setUserPoolFactory(new UserPoolFactory($jwk));
+        $manager->setCognitoSubRetriever($subRetriever);
+
+        app('auth')->guard($guard)->setUser($user);
+
+        app('auth')->shouldUse($guard);
+
+        return $user;
     }
 }
