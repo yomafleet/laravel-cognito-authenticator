@@ -33,6 +33,12 @@ class CognitoManager
     /** @var \Yomafleet\CognitoAuthenticator\CognitoSubRetriever */
     public $subRetriever;
 
+    /** @var \Yomafleet\CognitoAuthenticator\PasswordManager */
+    protected $passwordManager;
+
+    /** @var \Yomafleet\CognitoAuthenticator\UserManager */
+    protected $userManager;
+
     public function __construct(
         array $clientIds = [''],
         UserPoolFactoryContract $userPoolFactory = null,
@@ -141,11 +147,7 @@ class CognitoManager
         $poolId = config('cognito.pool_id');
         $clientId = config('cognito.id');
         $clientSecret = config('cognito.secret');
-        $credentials = config('cognito.credentials');
-        $client = new CognitoIdentityProviderClient($credentials + [
-            'region' => config('cognito.region'),
-            'version' => config('cognito.version')
-        ]);
+        $client = $this->createCognitoIdentityProviderClient();
         $authenticateAction = new AuthenticateAction(
             new CognitoAuthenticator($client, $poolId, $clientId, $clientSecret)
         );
@@ -170,6 +172,48 @@ class CognitoManager
             'refresh_token' => $result['RefreshToken'],
             'id_token' => $result['IdToken'],
         ];
+    }
+
+    /**
+     * Create a new cognito identity provider client
+     *
+     * @return \Aws\CognitoIdentityProvider\CognitoIdentityProviderClient
+     */
+    public function createCognitoIdentityProviderClient()
+    {
+        $credentials = config('cognito.credentials');
+        return new CognitoIdentityProviderClient($credentials + [
+            'region' => config('cognito.region'),
+            'version' => config('cognito.version')
+        ]);
+    }
+
+    /**
+     * Get password manager
+     *
+     * @return \Yomafleet\CognitoAuthenticator\PasswordManager
+     */
+    public function passwordManager()
+    {
+        if (! $this->passwordManager) {
+            $this->passwordManager = new PasswordManager($this->createCognitoIdentityProviderClient());
+        }
+
+        return $this->passwordManager;
+    }
+
+    /**
+     * Get user manager
+     *
+     * @return \Yomafleet\CognitoAuthenticator\UserManager
+     */
+    public function userManager()
+    {
+        if (! $this->userManager) {
+            $this->userManager = new UserManager($this->createCognitoIdentityProviderClient());
+        }
+
+        return $this->userManager;
     }
 
     /**
