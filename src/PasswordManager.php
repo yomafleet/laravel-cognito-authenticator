@@ -9,9 +9,13 @@ class PasswordManager
     /** @var \Aws\CognitoIdentityProvider\CognitoIdentityProviderClient */
     protected $client;
 
+    /** @var array */
+    protected $config;
+
     public function __construct(CognitoIdentityProviderClient $client)
     {
         $this->client = $client;
+        $this->config = config('cognito');
     }
 
     /**
@@ -22,7 +26,11 @@ class PasswordManager
      */
     public function forgotPassword(string $email)
     {
-        $this->client->forgotPassword(['Username' => $email]);
+        $this->client->forgotPassword([
+            'Username' => $email,
+            'ClientId' => $this->config['id'],
+            'SecretHash' => $this->secretHash($email),
+        ]);
     }
 
     /**
@@ -39,6 +47,8 @@ class PasswordManager
             'ConfirmationCode' => $code,
             'Username' => $email,
             'Password' => $password,
+            'ClientId' => $this->config['id'],
+            'SecretHash' => $this->secretHash($email),
         ]);
     }
 
@@ -50,7 +60,10 @@ class PasswordManager
      */
     public function adminResetUserPassword($email)
     {
-        return $this->client->adminResetUserPassword(['Username' => $email]);
+        return $this->client->adminResetUserPassword([
+            'Username' => $email,
+            'UserPoolId' => $this->config['pool_id'],
+        ]);
     }
 
     /**
@@ -67,6 +80,80 @@ class PasswordManager
             'Password' => $password,
             'Permanent' => $permanant,
             'Username' => $email,
+            'UserPoolId' => $this->config['pool_id'],
         ]);
+    }
+
+    /**
+     * Refresh tokens for admin
+     *
+     * @param string $token
+     * @return array
+     */
+    public function adminRefreshToken($token)
+    {
+        $response = $this->client->adminInitiateAuth([
+            'AuthFlow' => 'REFRESH_TOKEN_AUTH',
+            'AuthParameters' => [
+                'REFRESH_TOKEN' => $token,
+                'SECRET_HASH' => $this->secretHash($token),
+            ],
+            'ClientId' => $this->config['id'],
+        ]);
+
+        $result = $response['AuthenticationResult'] ?: null;
+
+        if (! $result) {
+            return $response->toArray();
+        }
+
+        return [
+            'access_token' => $result['AccessToken'],
+            'expires_in' => $result['ExpiresIn'],
+            'refresh_token' => $result['RefreshToken'],
+        ];
+    }
+
+    /**
+     * Refresh tokens for current user
+     *
+     * @param string $token
+     * @return array
+     */
+    public function refreshToken($token)
+    {
+        $response = $this->client->initiateAuth([
+            'AuthFlow' => 'REFRESH_TOKEN_AUTH',
+            'AuthParameters' => [
+                'REFRESH_TOKEN' => $token,
+            ],
+            'ClientId' => $this->config['id'],
+        ]);
+
+        $result = $response['AuthenticationResult'] ?: null;
+
+        if (! $result) {
+            return $response->toArray();
+        }
+
+        return [
+            'access_token' => $result['AccessToken'],
+            'expires_in' => $result['ExpiresIn'],
+            'refresh_token' => $result['RefreshToken'],
+        ];
+    }
+
+    /**
+     * Generate a secret hash
+     *
+     * @param string $name
+     * @return string
+     */
+    protected function secretHash($name)
+    {
+        $hashable = $name . $this->config['id'];
+        $signature = hash_hmac('sha256', $hashable, $this->config['secret'], true);
+
+        return base64_encode($signature);
     }
 }
