@@ -9,9 +9,13 @@ class UserManager
     /** @var \Aws\CognitoIdentityProvider\CognitoIdentityProviderClient */
     protected $client;
 
+    /** @var array */
+    protected $config;
+
     public function __construct(CognitoIdentityProviderClient $client)
     {
         $this->client = $client;
+        $this->config = config('cognito');
     }
 
     /**
@@ -26,12 +30,21 @@ class UserManager
         $map = [];
 
         foreach ($attributes as $name => $value) {
-            $map[] = ['Name' => $name, 'Value' => $value];
+            if ($name === 'phone') {
+                $map[] = ['Name' => 'phone_number', 'Value' => $value];
+                $map[] = ['Name' => 'phone_number_verified', 'Value' => "true"];
+            } else {
+                $map[] = ['Name' => $name, 'Value' => $value];
+                if ($name === 'email') {
+                    $map[] = ['Name' => 'email_verified', 'Value' => "true"];
+                }
+            }
         }
 
         return $this->client->adminUpdateUserAttributes([
             'Username' => $email,
             'UserAttributes' => $map,
+            'UserPoolId' => $this->config['pool_id'],
         ]);
     }
 
@@ -43,7 +56,10 @@ class UserManager
      */
     public function adminDisableUser(string $email)
     {
-        return $this->client->adminDisableUser(['Username' => $email]);
+        return $this->client->adminDisableUser([
+            'Username' => $email,
+            'UserPoolId' => $this->config['pool_id'],
+        ]);
     }
 
     /**
@@ -54,7 +70,10 @@ class UserManager
      */
     public function adminEnableUser(string $email)
     {
-        return $this->client->adminEnableUser(['Username' => $email]);
+        return $this->client->adminEnableUser([
+            'Username' => $email,
+            'UserPoolId' => $this->config['pool_id'],
+        ]);
     }
 
     /**
@@ -65,7 +84,10 @@ class UserManager
      */
     public function adminGetUser(string $email)
     {
-        return $this->client->adminGetUser(['Username' => $email]);
+        return $this->client->adminGetUser([
+            'Username' => $email,
+            'UserPoolId' => $this->config['pool_id'],
+        ]);
     }
 
     /**
@@ -76,7 +98,10 @@ class UserManager
      */
     public function adminUserGlobalSignOut(string $email)
     {
-        return $this->client->adminUserGlobalSignOut(['Username' => $email]);
+        return $this->client->adminUserGlobalSignOut([
+            'Username' => $email,
+            'UserPoolId' => $this->config['pool_id'],
+        ]);
     }
 
     /**
@@ -87,7 +112,10 @@ class UserManager
      */
     public function adminDeleteUser(string $email)
     {
-        return $this->client->adminDeleteUser(['Username' => $email]);
+        return $this->client->adminDeleteUser([
+            'Username' => $email,
+            'UserPoolId' => $this->config['pool_id'],
+        ]);
     }
 
     /**
@@ -102,6 +130,7 @@ class UserManager
         return $this->client->adminDeleteUserAttributes([
             'Username' => $email,
             'UserAttributeNames' => $attributes,
+            'UserPoolId' => $this->config['pool_id'],
         ]);
     }
 }
