@@ -2,7 +2,9 @@
 
 namespace Yomafleet\CognitoAuthenticator;
 
+use Illuminate\Support\Str;
 use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
+use Yomafleet\CognitoAuthenticator\Exceptions\InvalidStructureException;
 
 class UserManager
 {
@@ -16,6 +18,46 @@ class UserManager
     {
         $this->client = $client;
         $this->config = config('cognito');
+    }
+
+    /**
+     * Create a new user in cognito.
+     *
+     * @param array $attributes
+     * @param boolean $resend
+     * @return \Aws\Result
+     */
+    public function adminCreateUser($attributes, $resend = false)
+    {
+        $required = ['name', 'email', 'password'];
+
+        foreach ($required as $key) {
+            if (! isset($attributes[$key])) {
+                throw new InvalidStructureException(
+                    "Required parameter named '{$key}' is not found."
+                );
+            }
+        }
+
+        $attributes['email_verified'] = true;
+
+        $createUser = [
+            'MessageAction' => $resend ? 'RESEND' : 'SUPPRESS',
+            'UserAttributes' => $attributes,
+            'Username' => Str::uuid()->toString(),
+            'UserPoolId' => $this->config['pool_id'],
+        ];
+
+        $result = $this->client->adminCreateUser($createUser);
+
+        $this->client->adminSetUserPassword([
+            'Password' => $attributes['password'],
+            'Permanent' => true,
+            'Username' => $result['User']['Username'],
+            'UserPoolId' => $this->config['pool_id'],
+        ]);
+
+        return $result;
     }
 
     /**
