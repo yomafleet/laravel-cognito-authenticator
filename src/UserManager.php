@@ -2,7 +2,6 @@
 
 namespace Yomafleet\CognitoAuthenticator;
 
-use Illuminate\Support\Str;
 use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 use Yomafleet\CognitoAuthenticator\Exceptions\InvalidStructureException;
 
@@ -39,19 +38,27 @@ class UserManager
             }
         }
 
-        $attributes['email_verified'] = true;
+        $attributes['email_verified'] = 'true';
+        $password = $attributes['password'];
+        unset($attributes['password']);
+
+        $map = [];
+
+        foreach ($attributes as $key => $value) {
+            $map[] = ['Name' => $key, 'Value' => $value];
+        }
 
         $createUser = [
             'MessageAction' => $resend ? 'RESEND' : 'SUPPRESS',
-            'UserAttributes' => $attributes,
-            'Username' => Str::uuid()->toString(),
+            'UserAttributes' => $map,
+            'Username' => $attributes['email'],
             'UserPoolId' => $this->config['pool_id'],
         ];
 
         $result = $this->client->adminCreateUser($createUser);
 
         $this->client->adminSetUserPassword([
-            'Password' => $attributes['password'],
+            'Password' => $password,
             'Permanent' => true,
             'Username' => $result['User']['Username'],
             'UserPoolId' => $this->config['pool_id'],
