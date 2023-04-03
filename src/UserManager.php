@@ -3,6 +3,7 @@
 namespace Yomafleet\CognitoAuthenticator;
 
 use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
+use Illuminate\Support\Arr;
 use Yomafleet\CognitoAuthenticator\Exceptions\InvalidStructureException;
 
 class UserManager
@@ -23,10 +24,11 @@ class UserManager
      * Create a new user in cognito.
      *
      * @param array $attributes
+     * @param boolean $surpress
      * @param boolean $resend
      * @return \Aws\Result
      */
-    public function adminCreateUser($attributes, $resend = false)
+    public function adminCreateUser($attributes, $surpress = true, $resend = false)
     {
         $required = ['name', 'email', 'password'];
 
@@ -38,31 +40,41 @@ class UserManager
             }
         }
 
-        $attributes['email_verified'] = 'true';
-        $password = $attributes['password'];
-        unset($attributes['password']);
+        $createUserAttributes = Arr::only($attributes, ['name', 'email']);
+        $createUserAttributes['email_verified'] = 'true';
 
         $map = [];
 
-        foreach ($attributes as $key => $value) {
+        foreach ($createUserAttributes as $key => $value) {
             $map[] = ['Name' => $key, 'Value' => $value];
         }
 
         $createUser = [
-            'MessageAction' => $resend ? 'RESEND' : 'SUPPRESS',
             'UserAttributes' => $map,
             'Username' => $attributes['email'],
             'UserPoolId' => $this->config['pool_id'],
         ];
 
+        if ($surpress) {
+            $createUser['MessageAction'] = 'SUPPRESS';
+        } else {
+            $createUser['TemporaryPassword'] = $attributes['password'];
+            $createUser['DesiredDeliveryMediums'] = ['EMAIL'];
+            if ($resend) {
+                $createUser['MessageAction'] = 'RESEND';
+            }
+        }
+
         $result = $this->client->adminCreateUser($createUser);
 
-        $this->client->adminSetUserPassword([
-            'Password' => $password,
-            'Permanent' => true,
-            'Username' => $result['User']['Username'],
-            'UserPoolId' => $this->config['pool_id'],
-        ]);
+        if ($surpress) {
+            $this->client->adminSetUserPassword([
+                'Password' => $attributes['password'],
+                'Permanent' => true,
+                'Username' => $result['User']['Username'],
+                'UserPoolId' => $this->config['pool_id'],
+            ]);
+        }
 
         return $result;
     }
