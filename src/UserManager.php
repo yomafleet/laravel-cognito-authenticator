@@ -26,9 +26,10 @@ class UserManager
      * @param array $attributes
      * @param boolean $surpress
      * @param boolean $resend
+     * @param boolean $verified
      * @return \Aws\Result
      */
-    public function adminCreateUser($attributes, $surpress = true, $resend = false)
+    public function adminCreateUser($attributes, $surpress = true, $resend = false, $verfied = false)
     {
         $required = ['name', 'email', 'password'];
 
@@ -41,7 +42,7 @@ class UserManager
         }
 
         $createUserAttributes = Arr::only($attributes, ['name', 'email']);
-        $createUserAttributes['email_verified'] = 'true';
+        $createUserAttributes['email_verified'] = $verfied ? 'true' : 'false';
 
         $map = [];
 
@@ -84,20 +85,21 @@ class UserManager
      *
      * @param string $email
      * @param array $attributes
+     * @param boolean $verified
      * @return \Aws\Result
      */
-    public function adminUpdateUserAttributes(string $email, array $attributes)
+    public function adminUpdateUserAttributes(string $email, array $attributes, $verfied = false)
     {
         $map = [];
 
         foreach ($attributes as $name => $value) {
             if ($name === 'phone') {
                 $map[] = ['Name' => 'phone_number', 'Value' => $value];
-                $map[] = ['Name' => 'phone_number_verified', 'Value' => "true"];
+                $map[] = ['Name' => 'phone_number_verified', 'Value' => $verfied ? "true" : "false"];
             } else {
                 $map[] = ['Name' => $name, 'Value' => $value];
                 if ($name === 'email') {
-                    $map[] = ['Name' => 'email_verified', 'Value' => "true"];
+                    $map[] = ['Name' => 'email_verified', 'Value' => $verfied ? "true" : "false"];
                 }
             }
         }
