@@ -160,6 +160,19 @@ class CognitoManager
 
         $result = $response->toArray();
 
+        if (
+            array_key_exists('ChallengeName', $result)
+            && $result['ChallengeName'] === 'NEW_PASSWORD_REQUIRED'
+            && array_key_exists('ChallengeParameters', $result)) {
+            $challengeUserAttributes = json_decode($result['ChallengeParameters']['userAttributes'], true);
+
+            return [
+                'challenge' => $result['ChallengeName'],
+                'attributes' => $challengeUserAttributes,
+                'session' => $result['Session'],
+            ];
+        }
+
         if (! array_key_exists('AuthenticationResult', $result)) {
             throw new UnauthorizedException("Unauthorized!");
         }
@@ -167,6 +180,7 @@ class CognitoManager
         $result = $result['AuthenticationResult'];
 
         return [
+            'challenge' => null,
             'access_token' => $result['AccessToken'],
             'expires_in' => $result['ExpiresIn'],
             'refresh_token' => $result['RefreshToken'],

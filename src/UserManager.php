@@ -2,8 +2,8 @@
 
 namespace Yomafleet\CognitoAuthenticator;
 
-use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 use Illuminate\Support\Arr;
+use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 use Yomafleet\CognitoAuthenticator\Exceptions\InvalidStructureException;
 
 class UserManager

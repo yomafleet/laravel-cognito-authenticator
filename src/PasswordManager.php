@@ -3,6 +3,7 @@
 namespace Yomafleet\CognitoAuthenticator;
 
 use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
+use Yomafleet\CognitoAuthenticator\Facades\Cognito;
 
 class PasswordManager
 {
@@ -87,16 +88,17 @@ class PasswordManager
     /**
      * Refresh tokens for admin
      *
-     * @param string $token
+     * @param string $refreshToken
+     * @param string $idToken
      * @return array
      */
-    public function adminRefreshToken($token)
+    public function adminRefreshToken($refreshToken, $idToken)
     {
         $response = $this->client->adminInitiateAuth([
             'AuthFlow' => 'REFRESH_TOKEN_AUTH',
             'AuthParameters' => [
-                'REFRESH_TOKEN' => $token,
-                'SECRET_HASH' => $this->secretHash($token),
+                'REFRESH_TOKEN' => $refreshToken,
+                'SECRET_HASH' => $this->secretHash($this->getMailFromIdToken($idToken)),
             ],
             'ClientId' => $this->config['id'],
         ]);
@@ -111,21 +113,24 @@ class PasswordManager
             'access_token' => $result['AccessToken'],
             'expires_in' => $result['ExpiresIn'],
             'refresh_token' => $result['RefreshToken'],
+            'id_token' => $result['IdToken'],
         ];
     }
 
     /**
      * Refresh tokens for current user
      *
-     * @param string $token
+     * @param string $refreshToken
+     * @param string $idToken
      * @return array
      */
-    public function refreshToken($token)
+    public function refreshToken($refreshToken, $idToken)
     {
         $response = $this->client->initiateAuth([
             'AuthFlow' => 'REFRESH_TOKEN_AUTH',
             'AuthParameters' => [
-                'REFRESH_TOKEN' => $token,
+                'REFRESH_TOKEN' => $refreshToken,
+                'SECRET_HASH' => $this->secretHash($this->getMailFromIdToken($idToken)),
             ],
             'ClientId' => $this->config['id'],
         ]);
@@ -140,6 +145,41 @@ class PasswordManager
             'access_token' => $result['AccessToken'],
             'expires_in' => $result['ExpiresIn'],
             'refresh_token' => $result['RefreshToken'],
+            'id_token' => $result['IdToken'],
+        ];
+    }
+
+    /**
+     * Attempt the new password challenge
+     *
+     * @param array $respond
+     * @return array
+     */
+    public function newPasswordChallenge($respond)
+    {
+        $response = $this->client->respondToAuthChallenge([
+            'ChallengeName' => $respond['challenge'],
+            'ClientId' => $this->config['id'],
+            'Session' => $respond['session'],
+            'ChallengeResponses' => [
+                'NEW_PASSWORD' => $respond['new_password'],
+                'USERNAME' => $respond['email'],
+                'SECRET_HASH' => $this->secretHash($respond['email']),
+            ],
+        ]);
+
+        $result = $response['AuthenticationResult'] ?: null;
+
+        if (! $result) {
+            return $response->toArray();
+        }
+
+        return [
+            'challenge' => null,
+            'access_token' => $result['AccessToken'],
+            'expires_in' => $result['ExpiresIn'],
+            'refresh_token' => $result['RefreshToken'],
+            'id_token' => $result['IdToken'],
         ];
     }
 
@@ -155,5 +195,16 @@ class PasswordManager
         $signature = hash_hmac('sha256', $hashable, $this->config['secret'], true);
 
         return base64_encode($signature);
+    }
+
+    /**
+     * Get mail from id token
+     *
+     * @param string $token
+     * @return string
+     */
+    protected function getMailFromIdToken($token)
+    {
+        return Cognito::decode($token)->getClaim('email');
     }
 }
