@@ -189,6 +189,42 @@ class CognitoManager
     }
 
     /**
+     * Client authenticate to cognito
+     *
+     * @param string $email
+     * @param string $password
+     * @param string|null $clientId
+     * @return array
+     */
+    public function clientAuthenticate($email, $password, $clientId = null)
+    {
+        $client = $this->createCognitoIdentityProviderClient();
+
+        $response = $client->initiateAuth([
+            'AuthFlow' => 'USER_PASSWORD_AUTH',
+            'AuthParameters' => [
+                'USERNAME' => $email,
+                'PASSWORD' => $password,
+            ],
+            'ClientId' => $clientId ?: config('cognito.id'),
+        ]);
+
+        if (! isset($response['AuthenticationResult'])) {
+            throw new UnauthorizedException("Unauthorized!");
+        }
+
+        $result = $response['AuthenticationResult'];
+
+        return [
+            'challenge' => null,
+            'access_token' => $result['AccessToken'],
+            'expires_in' => $result['ExpiresIn'],
+            'refresh_token' => $result['RefreshToken'],
+            'id_token' => $result['IdToken'],
+        ];
+    }
+
+    /**
      * Create a new cognito identity provider client
      *
      * @return \Aws\CognitoIdentityProvider\CognitoIdentityProviderClient
