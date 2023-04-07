@@ -2,7 +2,6 @@
 
 namespace Yomafleet\CognitoAuthenticator;
 
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Yomafleet\CognitoAuthenticator\CognitoGuard;
 use Yomafleet\CognitoAuthenticator\UserProvider;

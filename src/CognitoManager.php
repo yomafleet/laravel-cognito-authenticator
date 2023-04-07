@@ -2,8 +2,11 @@
 
 namespace Yomafleet\CognitoAuthenticator;
 
-use Mockery;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Yomafleet\CognitoAuthenticator\CognitoConfig;
+use Yomafleet\CognitoAuthenticator\Facades\Cognito;
+use Yomafleet\CognitoAuthenticator\Models\UserPool;
 use Yomafleet\CognitoAuthenticator\CognitoSubRetriever;
 use Yomafleet\CognitoAuthenticator\CognitoAuthenticator;
 use Yomafleet\CognitoAuthenticator\Factories\TokenFactory;
@@ -17,6 +20,7 @@ use Yomafleet\CognitoAuthenticator\Contracts\TokenFactoryContract;
 use Yomafleet\CognitoAuthenticator\Contracts\DecoderFactoryContract;
 use Yomafleet\CognitoAuthenticator\Exceptions\UnauthorizedException;
 use Yomafleet\CognitoAuthenticator\Contracts\UserPoolFactoryContract;
+use Yomafleet\CognitoAuthenticator\Models\CognitoUser;
 
 class CognitoManager
 {
@@ -39,19 +43,39 @@ class CognitoManager
     /** @var \Yomafleet\CognitoAuthenticator\UserManager */
     protected $userManager;
 
+    /** @var string */
+    protected $profile;
+
     public function __construct(
         array $clientIds = [''],
         UserPoolFactoryContract $userPoolFactory = null,
         TokenFactoryContract $tokenFactory = null,
         CognitoSubRetriever $subRetriever = null,
+        $profile = null,
     ) {
         $this->clientIds = $clientIds;
-        $this->userPoolFactory = $userPoolFactory ?: new UserPoolFactory();
+        $this->profile($profile ?: CognitoConfig::get('default_profile'));
+        $this->userPoolFactory = $userPoolFactory ?: new UserPoolFactory([], $this->profile);
         $this->tokenFactory = $tokenFactory ?: new TokenFactory();
 
         if ($subRetriever) {
             $this->subRetriever = $subRetriever;
         }
+    }
+
+    /**
+     * Get the current profile, optionally change while getting it.
+     *
+     * @param string $name
+     * @return string
+     */
+    public function profile($name = '')
+    {
+        if ($name) {
+            $this->profile = $name;
+        }
+
+        return $this->profile;
     }
     
     /**
@@ -140,13 +164,15 @@ class CognitoManager
      *
      * @param string $identifier
      * @param string $password
+     * @param string $clientProfile
      * @return array
      */
-    public function authenticate($identifier, $password)
+    public function authenticate($identifier, $password, $clientProfile = '')
     {
-        $poolId = config('cognito.pool_id');
-        $clientId = config('cognito.id');
-        $clientSecret = config('cognito.secret');
+        $clientConfigs = CognitoConfig::getProfileConfig($clientProfile);
+        $poolId = $clientConfigs['pool_id'];
+        $clientId = $clientConfigs['id'];
+        $clientSecret = $clientConfigs['secret'];
         $client = $this->createCognitoIdentityProviderClient();
         $authenticateAction = new AuthenticateAction(
             new CognitoAuthenticator($client, $poolId, $clientId, $clientSecret)
@@ -199,6 +225,7 @@ class CognitoManager
     public function clientAuthenticate($email, $password, $clientId = null)
     {
         $client = $this->createCognitoIdentityProviderClient();
+        $defaultClient = CognitoConfig::getProfileConfig();
 
         $response = $client->initiateAuth([
             'AuthFlow' => 'USER_PASSWORD_AUTH',
@@ -206,7 +233,7 @@ class CognitoManager
                 'USERNAME' => $email,
                 'PASSWORD' => $password,
             ],
-            'ClientId' => $clientId ?: config('cognito.id'),
+            'ClientId' => $clientId ?: $defaultClient['id'],
         ]);
 
         if (! isset($response['AuthenticationResult'])) {
@@ -225,16 +252,43 @@ class CognitoManager
     }
 
     /**
+     * Get subable (model) by access token.
+     *
+     * @param string $accessToken
+     * @return \Illuminate\Database\Eloquent\Model|null
+     */
+    public function findSubable($accessToken)
+    {
+        $decoded = JwtDecoder::plainDecode($accessToken);
+        $clientId = $decoded->client_id;
+        $segments = explode('/', $decoded->iss);
+        $poolId = end($segments);
+        $jwk = Http::get("https://cognito-idp.ap-southeast-1.amazonaws.com/{$poolId}/.well-known/jwks.json")
+            ->json();
+        $userPool = new UserPool(
+            $poolId,
+            [$clientId],
+            CognitoConfig::get('region'),
+            $jwk,
+        );
+        $verifier = new CognitoClaimVerifier($userPool);
+        $decoder = new JwtDecoder($verifier);
+        $token = $decoder->decode($accessToken);
+        $sub = $token->getSub();
+        
+        return CognitoUser::where('sub', $sub)->first()?->subable;
+    }
+
+    /**
      * Create a new cognito identity provider client
      *
      * @return \Aws\CognitoIdentityProvider\CognitoIdentityProviderClient
      */
     public function createCognitoIdentityProviderClient()
     {
-        $credentials = config('cognito.credentials');
-        return new CognitoIdentityProviderClient($credentials + [
-            'region' => config('cognito.region'),
-            'version' => config('cognito.version')
+        return new CognitoIdentityProviderClient(CognitoConfig::getCredentials() + [
+            'region' => CognitoConfig::get('region'),
+            'version' => CognitoConfig::get('version')
         ]);
     }
 

@@ -3,6 +3,7 @@
 namespace Yomafleet\CognitoAuthenticator;
 
 use Illuminate\Support\Arr;
+use Yomafleet\CognitoAuthenticator\CognitoConfig;
 use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 use Yomafleet\CognitoAuthenticator\Exceptions\InvalidStructureException;
 
@@ -14,10 +15,10 @@ class UserManager
     /** @var array */
     protected $config;
 
-    public function __construct(CognitoIdentityProviderClient $client)
+    public function __construct(CognitoIdentityProviderClient $client, $profile = '')
     {
         $this->client = $client;
-        $this->config = config('cognito');
+        $this->config = CognitoConfig::getProfileConfig($profile);
     }
 
     /**

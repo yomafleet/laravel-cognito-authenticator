@@ -2,8 +2,9 @@
 
 namespace Yomafleet\CognitoAuthenticator;
 
-use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
+use Yomafleet\CognitoAuthenticator\CognitoConfig;
 use Yomafleet\CognitoAuthenticator\Facades\Cognito;
+use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 
 class PasswordManager
 {
@@ -13,10 +14,10 @@ class PasswordManager
     /** @var array */
     protected $config;
 
-    public function __construct(CognitoIdentityProviderClient $client)
+    public function __construct(CognitoIdentityProviderClient $client, $profile = '')
     {
         $this->client = $client;
-        $this->config = config('cognito');
+        $this->config = CognitoConfig::getProfileConfig($profile);
     }
 
     /**
@@ -27,11 +28,10 @@ class PasswordManager
      */
     public function forgotPassword(string $email)
     {
-        $this->client->forgotPassword([
+        $this->client->forgotPassword($this->decorateWithSecretHash([
             'Username' => $email,
             'ClientId' => $this->config['id'],
-            'SecretHash' => $this->secretHash($email),
-        ]);
+        ], $email));
     }
 
     /**
@@ -44,13 +44,12 @@ class PasswordManager
      */
     public function confirmForgotPassword($email, $password, $code)
     {
-        return $this->client->confirmForgotPassword([
+        return $this->client->confirmForgotPassword($this->decorateWithSecretHash([
             'ConfirmationCode' => $code,
             'Username' => $email,
             'Password' => $password,
             'ClientId' => $this->config['id'],
-            'SecretHash' => $this->secretHash($email),
-        ]);
+        ], $email));
     }
 
     /**
@@ -96,10 +95,9 @@ class PasswordManager
     {
         $response = $this->client->adminInitiateAuth([
             'AuthFlow' => 'REFRESH_TOKEN_AUTH',
-            'AuthParameters' => [
+            'AuthParameters' => $this->decorateWithSecretHash([
                 'REFRESH_TOKEN' => $refreshToken,
-                'SECRET_HASH' => $this->secretHash($this->getMailFromIdToken($idToken)),
-            ],
+            ], $this->getMailFromIdToken($idToken)),
             'ClientId' => $this->config['id'],
         ]);
 
@@ -128,10 +126,9 @@ class PasswordManager
     {
         $response = $this->client->initiateAuth([
             'AuthFlow' => 'REFRESH_TOKEN_AUTH',
-            'AuthParameters' => [
+            'AuthParameters' => $this->decorateWithSecretHash([
                 'REFRESH_TOKEN' => $refreshToken,
-                'SECRET_HASH' => $this->secretHash($this->getMailFromIdToken($idToken)),
-            ],
+            ], $this->getMailFromIdToken($idToken)),
             'ClientId' => $this->config['id'],
         ]);
 
@@ -161,11 +158,10 @@ class PasswordManager
             'ChallengeName' => $respond['challenge'],
             'ClientId' => $this->config['id'],
             'Session' => $respond['session'],
-            'ChallengeResponses' => [
+            'ChallengeResponses' => $this->decorateWithSecretHash([
                 'NEW_PASSWORD' => $respond['new_password'],
                 'USERNAME' => $respond['email'],
-                'SECRET_HASH' => $this->secretHash($respond['email']),
-            ],
+            ], $respond['email']),
         ]);
 
         $result = $response['AuthenticationResult'] ?: null;
@@ -206,5 +202,21 @@ class PasswordManager
     protected function getMailFromIdToken($token)
     {
         return Cognito::decode($token)->getClaim('email');
+    }
+
+    /**
+     * Add secret hash to payload
+     *
+     * @param array $params
+     * @param string $identifier
+     * @return array
+     */
+    protected function decorateWithSecretHash($params, $identifier)
+    {
+        if ($this->config['id'] && $this->config['secret']) {
+            $params['SECRET_HASH'] = $this->secretHash($identifier);
+        }
+
+        return $params;
     }
 }
