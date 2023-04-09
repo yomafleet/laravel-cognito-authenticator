@@ -24,10 +24,13 @@ class UserPoolFactory implements UserPoolFactoryContract
     /** @var array */
     protected $jwk = [];
 
+    /** @var string */
+    protected $profile;
+
     public function __construct(array $jwk = [], $profile = '')
     {
         $this->jwk = $jwk;
-
+        $this->profile = $profile;
         $this->id = CognitoConfig::getProfileConfig($profile, 'pool_id');
     }
 
@@ -42,7 +45,7 @@ class UserPoolFactory implements UserPoolFactoryContract
             return $this->id;
         }
 
-        $this->id = CognitoConfig::getProfileConfig('', 'pool_id');
+        $this->id = CognitoConfig::getProfileConfig($this->profile, 'pool_id');
 
         if (! $this->id) {
             throw new EnvironmentalNotSetException(
