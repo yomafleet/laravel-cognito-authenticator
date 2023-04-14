@@ -56,7 +56,15 @@ class CognitoConfig
                 throw new InvalidStructureException('Client profile config key missing: '.$attr);
             }
         }
-        return in_array($key, $credentials) ? $credentials[$key] : $credentials;
+
+        // if no credentials is provided, we can assume that user is wanted use
+        // other types of credentials provider, e.g: assumed IAM role,
+        // we can safely return empty array to it.
+        if (array_filter($credentials)) {
+            return [];
+        }
+
+        return array_key_exists($key, $credentials) ? $credentials[$key] : $credentials;
     }
 
     /**
