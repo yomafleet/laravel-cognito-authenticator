@@ -28,10 +28,11 @@ class PasswordManager
      */
     public function forgotPassword(string $email)
     {
-        $this->client->forgotPassword($this->decorateWithSecretHash([
+        $this->client->forgotPassword([
             'Username' => $email,
             'ClientId' => $this->config['id'],
-        ], $email));
+            'SecretHash' => $this->secretHash($email),
+        ]);
     }
 
     /**
@@ -44,12 +45,13 @@ class PasswordManager
      */
     public function confirmForgotPassword($email, $password, $code)
     {
-        return $this->client->confirmForgotPassword($this->decorateWithSecretHash([
+        return $this->client->confirmForgotPassword([
             'ConfirmationCode' => $code,
             'Username' => $email,
             'Password' => $password,
             'ClientId' => $this->config['id'],
-        ], $email));
+            'SecretHash' => $this->secretHash($email),
+        ]);
     }
 
     /**
@@ -95,9 +97,10 @@ class PasswordManager
     {
         $response = $this->client->adminInitiateAuth([
             'AuthFlow' => 'REFRESH_TOKEN_AUTH',
-            'AuthParameters' => $this->decorateWithSecretHash([
+            'AuthParameters' => [
                 'REFRESH_TOKEN' => $refreshToken,
-            ], $this->getMailFromIdToken($idToken)),
+                'SECRET_HASH' => $this->secretHash($this->getMailFromIdToken($idToken)),
+            ],
             'ClientId' => $this->config['id'],
         ]);
 
@@ -126,9 +129,10 @@ class PasswordManager
     {
         $response = $this->client->initiateAuth([
             'AuthFlow' => 'REFRESH_TOKEN_AUTH',
-            'AuthParameters' => $this->decorateWithSecretHash([
+            'AuthParameters' => [
                 'REFRESH_TOKEN' => $refreshToken,
-            ], $this->getMailFromIdToken($idToken)),
+                'SECRET_HASH' => $this->secretHash($this->getMailFromIdToken($idToken)),
+            ],
             'ClientId' => $this->config['id'],
         ]);
 
@@ -158,10 +162,11 @@ class PasswordManager
             'ChallengeName' => $respond['challenge'],
             'ClientId' => $this->config['id'],
             'Session' => $respond['session'],
-            'ChallengeResponses' => $this->decorateWithSecretHash([
+            'ChallengeResponses' => [
                 'NEW_PASSWORD' => $respond['new_password'],
                 'USERNAME' => $respond['email'],
-            ], $respond['email']),
+                'SECRET_HASH' => $this->secretHash($respond['email']),
+            ],
         ]);
 
         $result = $response['AuthenticationResult'] ?: null;
@@ -202,21 +207,5 @@ class PasswordManager
     protected function getMailFromIdToken($token)
     {
         return Cognito::decode($token)->getClaim('email');
-    }
-
-    /**
-     * Add secret hash to payload
-     *
-     * @param array $params
-     * @param string $identifier
-     * @return array
-     */
-    protected function decorateWithSecretHash($params, $identifier)
-    {
-        if ($this->config['id'] && $this->config['secret']) {
-            $params['SECRET_HASH'] = $this->secretHash($identifier);
-        }
-
-        return $params;
     }
 }
