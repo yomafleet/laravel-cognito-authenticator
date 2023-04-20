@@ -97,6 +97,8 @@ class UserManager
             if ($name === 'phone') {
                 $map[] = ['Name' => 'phone_number', 'Value' => $value];
                 $map[] = ['Name' => 'phone_number_verified', 'Value' => $verfied ? "true" : "false"];
+            } elseif ($name === 'fullname') {
+                $map[] = ['Name' => 'name', 'Value' => $value];
             } else {
                 $map[] = ['Name' => $name, 'Value' => $value];
                 if ($name === 'email') {
@@ -109,6 +111,24 @@ class UserManager
             'Username' => $email,
             'UserAttributes' => $map,
             'UserPoolId' => $this->config['pool_id'],
+        ]);
+    }
+
+    /**
+     * Verify user
+     *
+     * @param string $email
+     * @return \Aws\Result
+     */
+    public function adminVerifyUser(string $email)
+    {
+        $this->adminUpdateUserAttributes($email, [
+            'email' => $email,
+        ], true);
+
+        return $this->client->adminConfirmSignUp([
+            'UserPoolId' => $this->config['pool_id'],
+            'Username' => $email,
         ]);
     }
 
