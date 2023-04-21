@@ -2,8 +2,8 @@
 
 namespace Yomafleet\CognitoAuthenticator;
 
+use Yomafleet\CognitoAuthenticator\JwtDecoder;
 use Yomafleet\CognitoAuthenticator\CognitoConfig;
-use Yomafleet\CognitoAuthenticator\Facades\Cognito;
 use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 
 class PasswordManager
@@ -99,9 +99,10 @@ class PasswordManager
             'AuthFlow' => 'REFRESH_TOKEN_AUTH',
             'AuthParameters' => [
                 'REFRESH_TOKEN' => $refreshToken,
-                'SECRET_HASH' => $this->secretHash($this->getMailFromIdToken($idToken)),
+                'SECRET_HASH' => $this->secretHash($this->getFieldFomIdToken($idToken)),
             ],
             'ClientId' => $this->config['id'],
+            'UserPoolId' => $this->config['pool_id'],
         ]);
 
         $result = $response['AuthenticationResult'] ?: null;
@@ -113,7 +114,7 @@ class PasswordManager
         return [
             'access_token' => $result['AccessToken'],
             'expires_in' => $result['ExpiresIn'],
-            'refresh_token' => $result['RefreshToken'],
+            'refresh_token' => $result['RefreshToken'] ?? $refreshToken,
             'id_token' => $result['IdToken'],
         ];
     }
@@ -131,7 +132,7 @@ class PasswordManager
             'AuthFlow' => 'REFRESH_TOKEN_AUTH',
             'AuthParameters' => [
                 'REFRESH_TOKEN' => $refreshToken,
-                'SECRET_HASH' => $this->secretHash($this->getMailFromIdToken($idToken)),
+                'SECRET_HASH' => $this->secretHash($this->getFieldFomIdToken($idToken, 'mail')),
             ],
             'ClientId' => $this->config['id'],
         ]);
@@ -202,10 +203,12 @@ class PasswordManager
      * Get mail from id token
      *
      * @param string $token
+     * @param string $field
      * @return string
      */
-    protected function getMailFromIdToken($token)
+    protected function getFieldFomIdToken($token, $field = 'sub')
     {
-        return Cognito::decode($token)->getClaim('email');
+        $decoded = JwtDecoder::plainDecode($token);
+        return property_exists($decoded, $field) ? $decoded->$field : $decoded->sub;
     }
 }
