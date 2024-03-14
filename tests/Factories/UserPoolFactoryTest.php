@@ -16,7 +16,7 @@ class UserPoolFactoryTest extends TestCase
 
         // mock config
         config([
-            'cognito.pool_id' => $poolId,
+            'cognito.client_profiles.main' => $poolId,
             'region' => env('AWS_REGION'),
         ]);
 

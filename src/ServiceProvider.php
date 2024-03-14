@@ -2,11 +2,11 @@
 
 namespace Yomafleet\CognitoAuthenticator;
 
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Yomafleet\CognitoAuthenticator\CognitoGuard;
 use Yomafleet\CognitoAuthenticator\UserProvider;
 use Illuminate\Support\ServiceProvider as BaseProvider;
+use Yomafleet\CognitoAuthenticator\Factories\UserPoolFactory;
 
 class ServiceProvider extends BaseProvider
 {
@@ -44,6 +44,9 @@ class ServiceProvider extends BaseProvider
     {
         Auth::extend('cognito', function ($app, $name, array $config) {
             $manager = $app['cognito-authenticator'];
+
+            $manager->profile($name);
+            $manager->setUserPoolFactory(new UserPoolFactory([], $name));
 
             return new CognitoGuard(
                 Auth::createUserProvider($config['provider']),
