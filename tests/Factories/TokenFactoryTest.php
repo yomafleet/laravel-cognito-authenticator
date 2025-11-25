@@ -2,13 +2,14 @@
 
 namespace Tests\Factories;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 use Illuminate\Support\Str;
 use Yomafleet\CognitoAuthenticator\Factories\TokenFactory;
 
 class TokenFactoryTest extends TestCase
 {
-    /** @dataProvider token_use_provider */
+    #[DataProvider('token_use_provider')]
     public function test_token_factory_create_token(array $claims)
     {
         $factory = new TokenFactory();
@@ -20,7 +21,7 @@ class TokenFactoryTest extends TestCase
     }
 
     /** @return string[] */
-    public function token_use_provider()
+    public static function token_use_provider()
     {
         $region = env('AWS_REGION');
         $poolId = env('AWS_COGNITO_USER_POOL_ID');
