@@ -104,7 +104,7 @@ class CognitoSubRetriever implements CanGetSubContract
      */
     public function getIdTokenHeader()
     {
-        $headerName = config('cognito.id_token_name');
+        $headerName = CognitoConfig::get('id_token_name');
         $idToken = $this->request->header($headerName);
 
         if (! $idToken) {
