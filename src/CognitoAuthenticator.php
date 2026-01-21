@@ -40,13 +40,18 @@ class CognitoAuthenticator implements AuthenticableContract
      */
     public function authenticate($identifier, $password)
     {
+        $authParam = [
+            'USERNAME' => $identifier,
+            'PASSWORD' => $password,
+        ];
+
+        if ($this->clientSecret) {
+            $authParam['SECRET_HASH'] = $this->cognitoSecretHash($identifier);
+        }
+
         return $this->client->adminInitiateAuth([
             'AuthFlow' => 'ADMIN_NO_SRP_AUTH',
-            'AuthParameters' => [
-                'USERNAME' => $identifier,
-                'PASSWORD' => $password,
-                'SECRET_HASH' => $this->cognitoSecretHash($identifier),
-            ],
+            'AuthParameters' => $authParam,
             'ClientId' => $this->clientId,
             'UserPoolId' => $this->poolId,
         ]);

@@ -5,6 +5,7 @@ namespace Yomafleet\CognitoAuthenticator\Factories;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\UnauthorizedException;
+use Yomafleet\CognitoAuthenticator\CognitoConfig;
 use Yomafleet\CognitoAuthenticator\Models\UserPool;
 use Yomafleet\CognitoAuthenticator\Contracts\UserPoolFactoryContract;
 use Yomafleet\CognitoAuthenticator\Exceptions\EnvironmentalNotSetException;
@@ -23,9 +24,14 @@ class UserPoolFactory implements UserPoolFactoryContract
     /** @var array */
     protected $jwk = [];
 
-    public function __construct(array $jwk = [])
+    /** @var string */
+    protected $profile;
+
+    public function __construct(array $jwk = [], $profile = '')
     {
         $this->jwk = $jwk;
+        $this->profile = $profile;
+        $this->id = CognitoConfig::getProfileConfig($profile, 'pool_id');
     }
 
     /**
@@ -39,7 +45,7 @@ class UserPoolFactory implements UserPoolFactoryContract
             return $this->id;
         }
 
-        $this->id = config('cognito.pool_id');
+        $this->id = CognitoConfig::getProfileConfig($this->profile, 'pool_id');
 
         if (! $this->id) {
             throw new EnvironmentalNotSetException(
@@ -61,7 +67,7 @@ class UserPoolFactory implements UserPoolFactoryContract
             return $this->region;
         }
 
-        $this->region = config('cognito.region');
+        $this->region = CognitoConfig::get('region');
 
         if (! $this->id) {
             throw new EnvironmentalNotSetException(
