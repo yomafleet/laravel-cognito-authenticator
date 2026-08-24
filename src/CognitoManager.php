@@ -43,6 +43,9 @@ class CognitoManager
     /** @var \Yomafleet\CognitoAuthenticator\UserManager */
     protected $userManager;
 
+    /** @var \Yomafleet\CognitoAuthenticator\MfaManager */
+    protected $mfaManager;
+
     /** @var string */
     protected $profile;
 
@@ -186,15 +189,16 @@ class CognitoManager
 
         $result = $response->toArray();
 
-        if (
-            array_key_exists('ChallengeName', $result)
-            && $result['ChallengeName'] === 'NEW_PASSWORD_REQUIRED'
-            && array_key_exists('ChallengeParameters', $result)) {
-            $challengeUserAttributes = json_decode($result['ChallengeParameters']['userAttributes'], true);
+        if (array_key_exists('ChallengeName', $result) && array_key_exists('ChallengeParameters', $result)) {
+            $parameters = $result['ChallengeParameters'];
+
+            if ($result['ChallengeName'] === 'NEW_PASSWORD_REQUIRED' && array_key_exists('userAttributes', $parameters)) {
+                $parameters = json_decode($parameters['userAttributes'], true);
+            }
 
             return [
                 'challenge' => $result['ChallengeName'],
-                'attributes' => $challengeUserAttributes,
+                'parameters' => $parameters,
                 'session' => $result['Session'],
             ];
         }
@@ -318,6 +322,20 @@ class CognitoManager
         }
 
         return $this->userManager;
+    }
+
+    /**
+     * Get MFA manager
+     *
+     * @return \Yomafleet\CognitoAuthenticator\MfaManager
+     */
+    public function mfaManager()
+    {
+        if (! $this->mfaManager) {
+            $this->mfaManager = new MfaManager($this->createCognitoIdentityProviderClient());
+        }
+
+        return $this->mfaManager;
     }
 
     /**
