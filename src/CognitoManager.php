@@ -191,16 +191,26 @@ class CognitoManager
 
         if (array_key_exists('ChallengeName', $result) && array_key_exists('ChallengeParameters', $result)) {
             $parameters = $result['ChallengeParameters'];
+            $isNewPasswordRequired = $result['ChallengeName'] === 'NEW_PASSWORD_REQUIRED';
 
-            if ($result['ChallengeName'] === 'NEW_PASSWORD_REQUIRED' && array_key_exists('userAttributes', $parameters)) {
+            if ($isNewPasswordRequired && array_key_exists('userAttributes', $parameters)) {
                 $parameters = json_decode($parameters['userAttributes'], true);
             }
 
-            return [
+            $response = [
                 'challenge' => $result['ChallengeName'],
                 'parameters' => $parameters,
                 'session' => $result['Session'],
             ];
+
+            // Kept alongside 'parameters' so callers still on the pre-MFA
+            // shape (e.g. carshare-admin's new-password-challenge view)
+            // keep working until they migrate. Remove once nothing reads it.
+            if ($isNewPasswordRequired) {
+                $response['attributes'] = $parameters;
+            }
+
+            return $response;
         }
 
         if (! array_key_exists('AuthenticationResult', $result)) {
