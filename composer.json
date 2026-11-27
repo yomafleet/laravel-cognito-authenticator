@@ -6,8 +6,8 @@
   "minimum-stability": "stable",
   "authors": [
     {
-      "name": "aungchitmin",
-      "email": "aungchitmin@yomafleet.com"
+      "name": "yomafleetit",
+      "email": "itoperations@yomafleet.com"
     }
   ],
   "autoload": {
@@ -21,21 +21,26 @@
     }
   },
   "require": {
-    "php": "^7.3|^8.0",
-    "illuminate/support": "^8.0",
+    "php": "^8.2",
+    "illuminate/support": "^12.0|^13.0",
     "codercat/jwk-to-pem": "^1.1",
-    "firebase/php-jwt": "^6.3",
-    "guzzlehttp/guzzle": "^7.5"
+    "firebase/php-jwt": "^6.3|^7.0",
+    "guzzlehttp/guzzle": "^7.5",
+    "aws/aws-sdk-php": "^3.261"
   },
   "require-dev": {
-    "orchestra/testbench": "^6.0",
-    "phpunit/phpunit": "^9.5"
+    "mockery/mockery": "^1.6",
+    "orchestra/testbench": "^10.0|^11.0",
+    "phpunit/phpunit": "^10.5|^11.5|^12.5"
   },
   "extra": {
     "laravel": {
       "providers": [
         "Yomafleet\\CognitoAuthenticator\\ServiceProvider"
-      ]
+      ],
+      "aliases": {
+        "Cognito": "Yomafleet\\CognitoAuthenticator\\Facades\\Cognito"
+      }
     }
   }
 }

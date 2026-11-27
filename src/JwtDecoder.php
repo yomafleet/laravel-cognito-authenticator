@@ -159,4 +159,27 @@ class JwtDecoder implements DecoderContract
 
         return $decoded;
     }
+
+    /**
+     * Decode given jwt without verifying
+     *
+     * @param string $jwt
+     * @return objeect
+     */
+    public static function plainDecode($jwt)
+    {
+        return json_decode(
+            base64_decode(
+                str_replace(
+                    '_',
+                    '/',
+                    str_replace(
+                        '-',
+                        '+',
+                        explode('.', $jwt)[1]
+                    )
+                )
+            )
+        );
+    }
 }

@@ -23,6 +23,16 @@ abstract class Token implements TokenContract
     }
 
     /**
+     * Get all claims.
+     *
+     * @return array
+     */
+    public function claims()
+    {
+        return $this->claims;
+    }
+
+    /**
      * Get a claim value for the token.
      *
      * @param  string  $name

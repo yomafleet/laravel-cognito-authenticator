@@ -8,6 +8,13 @@ use Yomafleet\CognitoAuthenticator\Contracts\UserPoolContract;
 interface TokenContract
 {
     /**
+     * Get all claims.
+     *
+     * @return array
+     */
+    public function claims();
+
+    /**
      * Get a claim value for the token.
      *
      * @param  string  $name

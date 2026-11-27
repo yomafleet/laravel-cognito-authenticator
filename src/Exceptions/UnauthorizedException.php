@@ -7,7 +7,7 @@ use RuntimeException;
 
 class UnauthorizedException extends RuntimeException
 {
-    protected string $message = 'Unauthorized.';
+    protected $message = 'Unauthorized.';
 
     public function __construct($message = '', int $code = 0, Throwable $previous = null)
     {

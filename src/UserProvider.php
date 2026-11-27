@@ -31,7 +31,7 @@ class UserProvider extends EloquentUserProvider implements UserProviderContract
     {
         $cognitoUser = CognitoUser::with('subable')->where('sub', $sub)->first();
 
-        return $cognitoUser->subable ?? null;
+        return $cognitoUser?->subable ?? null;
     }
 
     /**

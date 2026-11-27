@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Yomafleet\CognitoAuthenticator\CognitoGuard;
 use Yomafleet\CognitoAuthenticator\UserProvider;
 use Illuminate\Support\ServiceProvider as BaseProvider;
-use Yomafleet\CognitoAuthenticator\CognitoSubRetriever;
+use Yomafleet\CognitoAuthenticator\Factories\UserPoolFactory;
 
 class ServiceProvider extends BaseProvider
 {
@@ -17,7 +17,7 @@ class ServiceProvider extends BaseProvider
      */
     public function register()
     {
-        //
+        $this->registerManager();
     }
 
     /**
@@ -27,18 +27,30 @@ class ServiceProvider extends BaseProvider
      */
     public function boot()
     {
-        $this->addCognitoGuard();
         $this->loadMigrations();
         $this->publishConfig();
         $this->createUserProvider();
+        $this->addCognitoGuard();
+    }
+
+    protected function registerManager()
+    {
+        $this->app->singleton('cognito-authenticator', function () {
+            return $this->createManager();
+        });
     }
 
     protected function addCognitoGuard()
     {
         Auth::extend('cognito', function ($app, $name, array $config) {
+            $manager = $app['cognito-authenticator'];
+
+            $manager->profile($name);
+            $manager->setUserPoolFactory(new UserPoolFactory([], $name));
+
             return new CognitoGuard(
                 Auth::createUserProvider($config['provider']),
-                new CognitoSubRetriever($app['request'])
+                $manager->getSubRetriever($app['request']),
             );
         });
     }
@@ -65,5 +77,19 @@ class ServiceProvider extends BaseProvider
                 $config['model']
             );
         });
+    }
+
+    protected function createManager()
+    {
+        $clientIds = config('cognito.client_ids', '');
+        $clientIds = explode(',', $clientIds);
+        return new CognitoManager($clientIds);
+    }
+
+    protected function publishFactory()
+    {
+        $this->publishes([
+            __DIR__.'/../database/migrations/' => database_path('migrations')
+        ], 'courier-migrations');
     }
 }

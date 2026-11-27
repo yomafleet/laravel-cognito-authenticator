@@ -31,7 +31,11 @@ class CognitoGuard implements Guard
             return $this->sub;
         }
 
-        $this->sub = $this->subRetriever->getSub();
+        try {
+            $this->sub = $this->subRetriever->getSub();
+        } catch (\Throwable $th) {
+            return null;
+        }
 
         return $this->sub;
     }
@@ -72,7 +76,7 @@ class CognitoGuard implements Guard
 
         $credentials = [self::IDENTIFIER_NAME => $credentials[self::IDENTIFIER_NAME]];
 
-        if ($this->provider->retrieveByCredentials($credentials)) {
+        if ($this->user = $this->provider->retrieveByCredentials($credentials)) {
             return true;
         }
 
